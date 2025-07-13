@@ -164,16 +164,18 @@ private void handleGetCommand(Player player, String targetName, boolean reverse)
         return;
     }
 
-    // 修正：正确处理 gets 命令的请求方向
+    // 根据命令类型设置请求方向
     if (reverse) {
-        // /bcneko gets <玩家>：玩家请求成为对方的猫娘（对方成为主人）
-        NekoManager.addRequest(player, target);
+        // /bcneko gets <玩家>：玩家请求成为对方的猫娘
+        // 目标玩家将成为主人，当前玩家将成为猫娘
+        NekoManager.addRequest(player, target, false);
         player.sendMessage("§a已向 " + target.getName() + " 发送成为猫娘的请求");
         target.sendMessage("§b" + player.getName() + " 想成为你的猫娘！输入 §e/bcneko accept §b接受或 §c/bcneko deny §b拒绝");
     } else {
-        // /bcneko get <玩家>：玩家请求对方成为自己的猫娘（自己成为主人）
-        NekoManager.addRequest(player, target);
-        player.sendMessage("§a已向 " + target.getName() + " 发送成为主人的请求");
+        // /bcneko get <玩家>：玩家请求对方成为自己的猫娘
+        // 当前玩家将成为主人，目标玩家将成为猫娘
+        NekoManager.addRequest(player, target, true);
+        player.sendMessage("§a已向 " + target.getName() + " 发送成为猫娘的请求");
         target.sendMessage("§b" + player.getName() + " 想让你成为猫娘！输入 §e/bcneko accept §b接受或 §c/bcneko deny §b拒绝");
     }
 }
