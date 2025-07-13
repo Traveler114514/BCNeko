@@ -75,14 +75,14 @@ public class NekoPlugin extends JavaPlugin {
 
         if (cmd.getName().equalsIgnoreCase("bcneko")) {
             if (args.length == 0) {
-                player.sendMessage("§c用法: /bcneko [get|gets|accept|deny|follow|change|del]");
+                player.sendMessage("§c用法: /bcneko [get <玩家> | gets <玩家> | accept | deny | follow | change <模式> | del]");
                 return true;
             }
 
             switch (args[0].toLowerCase()) {
                 case "get":
                     if (args.length != 2) {
-                        player.sendMessage("§c用法: /bcneko get <player>");
+                        player.sendMessage("§c用法: /bcneko get <玩家>");
                         return true;
                     }
                     handleGetCommand(player, args[1], false);
@@ -90,7 +90,7 @@ public class NekoPlugin extends JavaPlugin {
 
                 case "gets":
                     if (args.length != 2) {
-                        player.sendMessage("§c用法: /bcneko gets <player>");
+                        player.sendMessage("§c用法: /bcneko gets <玩家>");
                         return true;
                     }
                     handleGetCommand(player, args[1], true);
@@ -98,8 +98,11 @@ public class NekoPlugin extends JavaPlugin {
 
                 case "accept":
                     if (NekoManager.handleRequest(player, true)) {
-                        player.sendMessage("§a已接受猫娘请求");
-                        saveData(); // 保存关系变更
+                        player.sendMessage("§a已接受绑定请求");
+                        saveData();
+                    } else if (NekoManager.handleUnbindRequest(player, true)) {
+                        player.sendMessage("§a已接受解除请求");
+                        saveData();
                     } else {
                         player.sendMessage("§c没有待处理的请求");
                     }
@@ -107,20 +110,16 @@ public class NekoPlugin extends JavaPlugin {
 
                 case "deny":
                     if (NekoManager.handleRequest(player, false)) {
-                        player.sendMessage("§c已拒绝请求");
+                        player.sendMessage("§c已拒绝绑定请求");
+                    } else if (NekoManager.handleUnbindRequest(player, false)) {
+                        player.sendMessage("§c已拒绝解除请求");
                     } else {
                         player.sendMessage("§c没有待处理的请求");
                     }
                     return true;
 
                 case "follow":
-                    Player owner = NekoManager.getOwner(player);
-                    if (owner == null) {
-                        player.sendMessage("§c只有猫娘可以使用此命令");
-                        return true;
-                    }
-                    player.teleport(owner.getLocation());
-                    player.sendMessage("§a已传送到主人身边");
+                    handleFollowCommand(player);
                     return true;
 
                 case "change":
@@ -128,14 +127,7 @@ public class NekoPlugin extends JavaPlugin {
                         player.sendMessage("§c用法: /bcneko change <模式>");
                         return true;
                     }
-                    if (!NekoManager.isNeko(player)) {
-                        player.sendMessage("§c只有猫娘可以切换模式");
-                        return true;
-                    }
-                    NekoManager.setNekoMode(player, args[1]);
-                    player.sendMessage("§a猫娘模式已切换为: " + args[1]);
-                    // 保存模式设置
-                    saveData();
+                    handleChangeCommand(player, args[1]);
                     return true;
                     
                 case "del":
@@ -209,5 +201,51 @@ public class NekoPlugin extends JavaPlugin {
         NekoManager.addUnbindRequest(player, partner);
         player.sendMessage("§a已向 " + partner.getName() + " 发送解除关系请求");
         partner.sendMessage("§b" + player.getName() + " 请求解除关系，输入 §e/bcneko accept §b接受或 §c/bcneko deny §b拒绝");
+    }
+    
+    private void handleFollowCommand(Player player) {
+        Player cat = null;
+        
+        if (NekoManager.isOwner(player)) {
+            // 主人召唤猫娘
+            cat = NekoManager.getNeko(player);
+            if (cat == null) {
+                player.sendMessage("§c你没有猫娘");
+                return;
+            }
+            cat.teleport(player.getLocation());
+            player.sendMessage("§a已召唤猫娘到身边");
+            cat.sendMessage("§a主人召唤了你");
+        } else if (NekoManager.isNeko(player)) {
+            // 猫娘传送到主人
+            Player owner = NekoManager.getOwner(player);
+            if (owner == null || !owner.isOnline()) {
+                player.sendMessage("§c主人不在线");
+                return;
+            }
+            player.teleport(owner.getLocation());
+            player.sendMessage("§a已传送到主人身边");
+        } else {
+            player.sendMessage("§c你没有绑定关系");
+        }
+    }
+    
+    private void handleChangeCommand(Player player, String mode) {
+        // 只有主人可以切换猫娘模式
+        if (!NekoManager.isOwner(player)) {
+            player.sendMessage("§c只有主人可以切换猫娘模式");
+            return;
+        }
+        
+        Player neko = NekoManager.getNeko(player);
+        if (neko == null || !neko.isOnline()) {
+            player.sendMessage("§c你的猫娘不在线");
+            return;
+        }
+        
+        NekoManager.setNekoMode(neko, mode);
+        player.sendMessage("§a已将猫娘模式切换为: " + mode);
+        neko.sendMessage("§a主人已将你的模式切换为: " + mode);
+        saveData();
     }
 }
