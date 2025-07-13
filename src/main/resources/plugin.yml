@@ -1,0 +1,9 @@
+name: BCNeko
+main: com.tr.bcneko.NekoPlugin
+version: 1.0.0
+author: Traveler114514
+api-version: 1.16
+commands:
+  bcneko:
+    description: Manage your cat girl
+    usage: /bcneko [get <player> | gets <player> | accept | deny | follow | change <mode> | del]
