@@ -5,7 +5,6 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,11 +16,22 @@ public class NekoManager {
     // 猫娘模式 (猫娘UUID -> 模式名称)
     private static final Map<UUID, String> nekoModes = new ConcurrentHashMap<>();
     
-    // 待处理请求 (接收者UUID -> 请求者UUID)
-    private static final Map<UUID, UUID> pendingRequests = new ConcurrentHashMap<>();
+    // 待处理请求 (接收者UUID -> 请求信息)
+    private static final Map<UUID, RequestInfo> pendingRequests = new ConcurrentHashMap<>();
     
     // 待处理解除请求 (接收者UUID -> 请求者UUID)
     private static final Map<UUID, UUID> pendingUnbinds = new ConcurrentHashMap<>();
+    
+    // 请求信息类
+    public static class RequestInfo {
+        public final UUID sender;
+        public final boolean isGetCommand; // true: get命令（请求对方成为猫娘），false: gets命令（请求成为猫娘）
+        
+        public RequestInfo(UUID sender, boolean isGetCommand) {
+            this.sender = sender;
+            this.isGetCommand = isGetCommand;
+        }
+    }
 
     // 添加关系
     public static void bind(Player owner, Player neko) {
@@ -52,8 +62,8 @@ public class NekoManager {
     }
 
     // 添加请求
-    public static void addRequest(Player sender, Player receiver) {
-        pendingRequests.put(receiver.getUniqueId(), sender.getUniqueId());
+    public static void addRequest(Player sender, Player receiver, boolean isGetCommand) {
+        pendingRequests.put(receiver.getUniqueId(), new RequestInfo(sender.getUniqueId(), isGetCommand));
     }
     
     // 添加解除请求
@@ -65,22 +75,21 @@ public class NekoManager {
     public static boolean handleRequest(Player receiver, boolean accept) {
         if (!pendingRequests.containsKey(receiver.getUniqueId())) return false;
         
-        UUID senderId = pendingRequests.remove(receiver.getUniqueId());
-        Player sender = Bukkit.getPlayer(senderId);
+        RequestInfo requestInfo = pendingRequests.remove(receiver.getUniqueId());
+        Player sender = Bukkit.getPlayer(requestInfo.sender);
         
         if (sender == null || !sender.isOnline()) return false;
         
         if (accept) {
-            // 确定关系方向：谁将成为主人，谁将成为猫娘
+            // 确定关系方向
             Player owner, neko;
             
-            // 如果接收者是请求成为猫娘的人（即发送者是主人）
-            if (isRequestingToBeNeko(receiver, sender)) {
+            if (requestInfo.isGetCommand) {
+                // get命令：sender是主人，receiver是猫娘
                 owner = sender;
                 neko = receiver;
-            } 
-            // 如果接收者是请求成为主人的人（即发送者是猫娘）
-            else {
+            } else {
+                // gets命令：receiver是主人，sender是猫娘
                 owner = receiver;
                 neko = sender;
             }
@@ -92,12 +101,6 @@ public class NekoManager {
             sender.sendMessage("§c" + receiver.getName() + " 拒绝了你的请求");
         }
         return true;
-    }
-    
-    // 检查玩家是否请求成为猫娘
-    public static boolean isRequestingToBeNeko(Player player, Player target) {
-        return pendingRequests.containsKey(player.getUniqueId()) && 
-               pendingRequests.get(player.getUniqueId()).equals(target.getUniqueId());
     }
     
     // 处理解除请求
@@ -167,6 +170,7 @@ public class NekoManager {
         ownerRelations.clear();
         nekoModes.clear();
         pendingUnbinds.clear();
+        pendingRequests.clear();
 
         ConfigurationSection relations = config.getConfigurationSection("relations");
         if (relations != null) {
