@@ -142,41 +142,41 @@ public class NekoPlugin extends JavaPlugin {
         return false;
     }
 
-    private void handleGetCommand(Player player, String targetName, boolean reverse) {
-        Player target = Bukkit.getPlayer(targetName);
-        if (target == null) {
-            player.sendMessage("§c玩家不存在或不在线");
-            return;
-        }
-
-        if (player.equals(target)) {
-            player.sendMessage("§c不能对自己使用此命令");
-            return;
-        }
-
-        if (NekoManager.isBound(player)) {
-            player.sendMessage("§c你已绑定猫娘或已被绑定！");
-            return;
-        }
-
-        if (NekoManager.isBound(target)) {
-            player.sendMessage("§c该玩家已有绑定关系！");
-            return;
-        }
-
-        // 修复：正确处理 gets 命令的请求方向
-        Player requester = reverse ? player : player;
-        Player requested = reverse ? target : target;
-
-        NekoManager.addRequest(requester, requested);
-        player.sendMessage("§a已向 " + target.getName() + " 发送请求");
-
-        if (reverse) {
-            target.sendMessage("§b" + player.getName() + " 想成为你的猫娘！输入 §e/bcneko accept §b接受或 §c/bcneko deny §b拒绝");
-        } else {
-            target.sendMessage("§b" + player.getName() + " 想让你成为猫娘！输入 §e/bcneko accept §b接受或 §c/bcneko deny §b拒绝");
-        }
+private void handleGetCommand(Player player, String targetName, boolean reverse) {
+    Player target = Bukkit.getPlayer(targetName);
+    if (target == null) {
+        player.sendMessage("§c玩家不存在或不在线");
+        return;
     }
+
+    if (player.equals(target)) {
+        player.sendMessage("§c不能对自己使用此命令");
+        return;
+    }
+
+    if (NekoManager.isBound(player)) {
+        player.sendMessage("§c你已绑定猫娘或已被绑定！");
+        return;
+    }
+
+    if (NekoManager.isBound(target)) {
+        player.sendMessage("§c该玩家已有绑定关系！");
+        return;
+    }
+
+    // 修正：正确处理 gets 命令的请求方向
+    if (reverse) {
+        // /bcneko gets <玩家>：玩家请求成为对方的猫娘（对方成为主人）
+        NekoManager.addRequest(player, target);
+        player.sendMessage("§a已向 " + target.getName() + " 发送成为猫娘的请求");
+        target.sendMessage("§b" + player.getName() + " 想成为你的猫娘！输入 §e/bcneko accept §b接受或 §c/bcneko deny §b拒绝");
+    } else {
+        // /bcneko get <玩家>：玩家请求对方成为自己的猫娘（自己成为主人）
+        NekoManager.addRequest(player, target);
+        player.sendMessage("§a已向 " + target.getName() + " 发送成为主人的请求");
+        target.sendMessage("§b" + player.getName() + " 想让你成为猫娘！输入 §e/bcneko accept §b接受或 §c/bcneko deny §b拒绝");
+    }
+}
     
     private void handleDelCommand(Player player) {
         // 检查玩家是否有绑定关系
