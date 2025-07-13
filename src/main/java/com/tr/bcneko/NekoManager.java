@@ -71,13 +71,33 @@ public class NekoManager {
         if (sender == null || !sender.isOnline()) return false;
         
         if (accept) {
-            bind(sender, receiver);
-            sender.sendMessage("§a" + receiver.getName() + " 已成为你的猫娘！");
-            receiver.sendMessage("§a你已与 " + sender.getName() + " 绑定！");
+            // 确定关系方向：谁将成为主人，谁将成为猫娘
+            Player owner, neko;
+            
+            // 如果接收者是请求成为猫娘的人（即发送者是主人）
+            if (isRequestingToBeNeko(receiver, sender)) {
+                owner = sender;
+                neko = receiver;
+            } 
+            // 如果接收者是请求成为主人的人（即发送者是猫娘）
+            else {
+                owner = receiver;
+                neko = sender;
+            }
+            
+            bind(owner, neko);
+            owner.sendMessage("§a" + neko.getName() + " 已成为你的猫娘！");
+            neko.sendMessage("§a你已与 " + owner.getName() + " 绑定！");
         } else {
             sender.sendMessage("§c" + receiver.getName() + " 拒绝了你的请求");
         }
         return true;
+    }
+    
+    // 检查玩家是否请求成为猫娘
+    public static boolean isRequestingToBeNeko(Player player, Player target) {
+        return pendingRequests.containsKey(player.getUniqueId()) && 
+               pendingRequests.get(player.getUniqueId()).equals(target.getUniqueId());
     }
     
     // 处理解除请求
