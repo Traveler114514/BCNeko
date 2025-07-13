@@ -13,10 +13,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class NekoManager {
     // 主人关系 (猫娘UUID -> 主人UUID)
     private static final Map<UUID, UUID> ownerRelations = new ConcurrentHashMap<>();
-
+    
     // 猫娘模式 (猫娘UUID -> 模式名称)
     private static final Map<UUID, String> nekoModes = new ConcurrentHashMap<>();
-
+    
     // 待处理请求 (接收者UUID -> 请求者UUID)
     private static final Map<UUID, UUID> pendingRequests = new ConcurrentHashMap<>();
     
@@ -64,12 +64,12 @@ public class NekoManager {
     // 处理请求
     public static boolean handleRequest(Player receiver, boolean accept) {
         if (!pendingRequests.containsKey(receiver.getUniqueId())) return false;
-
+        
         UUID senderId = pendingRequests.remove(receiver.getUniqueId());
         Player sender = Bukkit.getPlayer(senderId);
-
+        
         if (sender == null || !sender.isOnline()) return false;
-
+        
         if (accept) {
             bind(sender, receiver);
             sender.sendMessage("§a" + receiver.getName() + " 已成为你的猫娘！");
@@ -83,20 +83,21 @@ public class NekoManager {
     // 处理解除请求
     public static boolean handleUnbindRequest(Player receiver, boolean accept) {
         if (!pendingUnbinds.containsKey(receiver.getUniqueId())) return false;
-
+        
         UUID senderId = pendingUnbinds.remove(receiver.getUniqueId());
         Player sender = Bukkit.getPlayer(senderId);
-
+        
         if (sender == null || !sender.isOnline()) return false;
-
+        
         if (accept) {
             // 解除关系
-            Player neko = getBoundCat(sender);
-            if (neko != null) {
-                unbind(neko);
-                sender.sendMessage("§a你与 " + receiver.getName() + " 的关系已解除");
-                receiver.sendMessage("§a你与 " + sender.getName() + " 的关系已解除");
+            if (isNeko(sender)) {
+                unbind(sender);
+            } else if (isNeko(receiver)) {
+                unbind(receiver);
             }
+            sender.sendMessage("§a你与 " + receiver.getName() + " 的关系已解除");
+            receiver.sendMessage("§a你与 " + sender.getName() + " 的关系已解除");
         } else {
             sender.sendMessage("§c" + receiver.getName() + " 拒绝了你的解除请求");
         }
@@ -175,13 +176,13 @@ public class NekoManager {
     public static void saveData(FileConfiguration config) {
         config.set("relations", null);
         config.set("modes", null);
-
+        
         // 保存关系
         ConfigurationSection relations = config.createSection("relations");
         for (Map.Entry<UUID, UUID> entry : ownerRelations.entrySet()) {
             relations.set(entry.getKey().toString(), entry.getValue().toString());
         }
-
+        
         // 保存模式
         ConfigurationSection modes = config.createSection("modes");
         for (Map.Entry<UUID, String> entry : nekoModes.entrySet()) {
