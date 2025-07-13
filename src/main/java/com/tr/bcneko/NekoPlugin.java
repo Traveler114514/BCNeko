@@ -99,7 +99,7 @@ public class NekoPlugin extends JavaPlugin {
                 case "accept":
                     if (NekoManager.handleRequest(player, true)) {
                         player.sendMessage("§a已接受绑定请求");
-                        saveData();
+                        saveData(); // 保存关系变更
                     } else if (NekoManager.handleUnbindRequest(player, true)) {
                         player.sendMessage("§a已接受解除请求");
                         saveData();
@@ -164,8 +164,9 @@ public class NekoPlugin extends JavaPlugin {
             return;
         }
 
-        Player requester = reverse ? target : player;
-        Player requested = reverse ? player : target;
+        // 修复：正确处理 gets 命令的请求方向
+        Player requester = reverse ? player : player;
+        Player requested = reverse ? target : target;
 
         NekoManager.addRequest(requester, requested);
         player.sendMessage("§a已向 " + target.getName() + " 发送请求");
